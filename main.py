@@ -53,6 +53,7 @@ class ShutdownUi(QWidget):
 		self.timer_text.setFixedSize(275, 83)
 		self.input.setAlignment(Qt.AlignHCenter)
 		self.input.textChanged.connect(self.value_changed)
+		self.input.returnPressed.connect(self.show_input)
 		self.input.hide()
 		self.change_time.setToolTip("Change current countdown")
 		self.change_time.setCursor(QCursor(Qt.PointingHandCursor))
@@ -299,6 +300,16 @@ class ShutdownUi(QWidget):
 		self.right_spacer.changeSize(35*self.w_factor, 0)
 		self.bottom_spacer.changeSize(0, 20*self.h_factor)
 		self.change_time.setIconSize(QSize(28*self.w_factor, 28*self.h_factor))
+		self.toggle_btn.setStyleSheet(f"""QPushButton {{
+											color: rgb(58, 58, 58);
+											background-color:  #dfe4ea;;
+											border-radius: {5*self.h_factor}px;
+											border-bottom: {7*self.h_factor}px solid #BFC4CB;
+										}}
+										QPushButton:pressed {{
+											border-top: 4px solid transparent;
+											border-bottom: 1px solid transparent;
+										}}""")
 
 if __name__ == '__main__':
 	app = QApplication(argv)
