@@ -4,30 +4,31 @@ from subprocess import call
 
 class ShutdownUi(QWidget):
 	DEFAULT_TIME = "00:10:00"
-	DAYS_SIZE = 27
-	DEFAULT_SIZE = 51
+	ADAPT_FONT = 27
+	ADAPT_SIZE = 236, 59
+	DEFAULT_FONT = 51
+	DEFAULT_SIZE = 284, 84
 
 	def __init__(self):
 		super().__init__()
 		self.w, self.h = 441, 286
 		self.w_factor, self.h_factor = 1, 1
-		self.setWindowIcon(QIcon("Assets/shutdown.png"))
-		self.installEventFilter(self)
-		self.setMinimumSize(self.w, self.h)
-		self.setWindowTitle("Shutdown Timer")
-		self.setStyleSheet("""background: #2f3542;""")
-		self.init_ui()
-
-	def init_ui(self):
 		self.text_valid = True
 		self.started = False
 		self.old_input = []
 		self.colon = [False, 0]
 		self.reset_colon = False
 		self.old_pos = False
-		self.old_input_size = {}
-		self.new_input_size = {}
-		self.new_font, self.new_size = 0, ()
+		self.size_plus = 0
+		self.left_plus, self.right_plus = 0, 0
+		self.init_ui()
+
+	def init_ui(self):
+		self.setWindowIcon(QIcon("Assets/shutdown.png"))
+		self.setMinimumSize(self.w, self.h)
+		self.setWindowTitle("Shutdown Timer")
+		self.setStyleSheet("""background: #2f3542;""")
+		self.installEventFilter(self)
 		self.widget_management()
 		self.setup_stylesheet()
 		self.layout_management()
@@ -37,9 +38,9 @@ class ShutdownUi(QWidget):
 		self.notification = Notification(self)
 		self.thread.notif_signal.connect(self.show_notification)
 		self.thread.finished_signal.connect(self.shutdown)
-		self.info_text = QLabel("This computer will shutdown in")
+		self.info_text = QLabel("Your computer will shutdown in")
 		self.timer_font = QFont()
-		self.timer_font.setFamily("Ms Shell Dlg 2")
+		self.timer_font.setFamily("MS Shell Dlg 2")
 		self.timer_font.setPointSize(52)
 		self.timer = QLineEdit(self.DEFAULT_TIME, self)
 		self.change_time = QPushButton(clicked=lambda: self.on_click(change_text=True))
@@ -98,9 +99,9 @@ class ShutdownUi(QWidget):
 		self.setLayout(self.main_layout)
 
 	def setup_stylesheet(self):
-		self.timer.setStyleSheet("""color: #dfe4ea;
-										 background: #2D323F;
-										 border-radius: 10px;""")
+		self.timer.setStyleSheet("""color: #ced6e0;
+									background: #2D323F;
+									border-radius: 10px;""")
 		self.change_time.setStyleSheet("background: transparent;")
 		self.invalid_dialog.setStyleSheet("""background: #dfe4ea;
 											 border-radius: 8px;""")
@@ -117,13 +118,76 @@ class ShutdownUi(QWidget):
 		self.hide()
 		self.notification.showFullScreen()
 
-	def change_mode(self):
-		self.new_input_size["Font"] = self.timer_font.pointSize()-24
-		self.new_input_size["Size"] = self.timer.width(), self.timer.height()
-		if self.timer.isReadOnly():
-			self.timer.setReadOnly(False)
-			self.timer.setFocus(True)
+	def set_focus(self, focus=False):
+		self.timer.setReadOnly(not focus)
+		self.timer.setFocus(focus)
+		if focus: 
 			self.timer.deselect()
+
+	def adapt_size(self):
+		self.size_plus = (len(self.timer.text()[:-9])-5)
+		self.left_plus, self.right_plus = 0, 0
+		if not self.size_plus:
+			self.size_plus += 10
+		elif self.size_plus == 2:
+			self.size_plus += 40
+		elif self.size_plus == 3:
+			self.size_plus += 60
+			self.left_plus = 5
+			self.right_plus = 10
+		elif self.size_plus >= 4:
+			self.size_plus += 30 + (self.size_plus*5)*self.w_factor
+			if not self.windowState() & Qt.WindowMaximized:
+				old_text = self.timer_format(self.get_time(''.join(self.old_input)))
+				new_text = self.timer.text()
+				if len(old_text) != len(new_text):
+					if self.height() != self.h*self.h_factor+20:
+						self.resize((self.w*self.w_factor)+ 20 + self.size_plus*self.w_factor, (self.h*self.h_factor)+20)
+
+		self.timer_font.setPointSize(self.ADAPT_FONT*self.h_factor)
+		self.timer.setFixedSize((self.ADAPT_SIZE[0]*self.w_factor)+self.size_plus, self.ADAPT_SIZE[1]*self.h_factor)
+		self.timer.setFont(self.timer_font)
+		self.left_spacer.changeSize((65*self.w_factor)-self.left_plus, 0)
+		self.right_spacer.changeSize((35*self.w_factor)-self.right_plus, 0)
+
+	def change_text(self, new):
+		if self.text_valid:
+			time_format = self.timer_format(self.get_time(new))
+			self.timer.setText(time_format)
+			if ',' in time_format:
+				self.adapt_size()
+
+			self.change_mode()
+		elif ',' in new:
+			self.change_mode()
+		else:
+			self.timer.setText(''.join(self.old_input))
+			self.raise_error()
+
+	def on_click(self, change_text=False):
+		text = self.timer.text()
+		if change_text:
+			if self.thread.isRunning():
+				self.thread.stop()
+
+			if not self.timer.isReadOnly():
+				self.text_valid = self.is_valid(text)
+			self.change_text(text)
+		else:
+			if self.started:
+				QTimer.singleShot(50, self.thread.stop)
+			else:
+				if not self.timer.isReadOnly():
+					self.set_focus(focus=False)
+				self.started = True
+				self.thread.seconds = self.get_time(self.timer.text(), reverse=True if 'day' in text else False)
+				QTimer.singleShot(50, self.thread.start)
+				self.toggle_btn.setText("Stop")
+
+
+	def change_mode(self):
+		if self.timer.isReadOnly():
+			self.set_focus(focus=True)
 			text = self.timer.text()
 			if len(text) > 8:
 				new_text = self.get_time(text, reverse=True, is_str=True)
@@ -133,14 +197,10 @@ class ShutdownUi(QWidget):
 				self.timer.setFont(self.timer_font)
 			else:
 				new_text = self.timer_format(self.get_time(text, reverse=False))
-
 			if new_text:
 				self.timer.setText(new_text)
 			self.old_input = list(self.timer.text())
 		else:
-			if 'day' in self.timer.text():
-				#print(self.timer.rect())
-				self.adapt_size(old=True, origin="change_mode; else")
 			self.old_input = list(self.timer.text())
 			self.timer.setReadOnly(True)
 
@@ -200,7 +260,6 @@ class ShutdownUi(QWidget):
 					nums = int(nums)
 
 				values.append(nums)
-
 		else:
 			text = text.split()
 			hours = int(text[0])*24 + int(text[2][:-6])
@@ -222,53 +281,14 @@ class ShutdownUi(QWidget):
 		self.started = False
 		self.toggle_btn.setText("Start")
 		self.notification.hide()
-		if system() == 'Windows':
+		system_name = system()
+		if system_name == 'Windows':
 			call("shutdown /s")
-		elif system() == 'Linux':
+		elif system_name == 'Linux' or system_name == 'Darwin':
 			call("shutdown")
-		elif system() == 'Darwin':
-			pass
-
-	def on_click(self, change_text=False):
-		text = self.timer.text()
-		if change_text:
-			if not self.timer.isReadOnly():
-				self.text_valid = self.is_valid(text)
-			self.change_text(text)
-		else:
-			if self.started:
-				QTimer.singleShot(50, self.thread.stop)
-			else:
-				self.started = True
-				self.thread.seconds = self.get_time(self.timer.text(), reverse=True if 'day' in text else False)
-				QTimer.singleShot(50, self.thread.start)
-				self.toggle_btn.setText("Stop")
-
-	def change_text(self, new):
-		if self.text_valid:
-			time_format = self.timer_format(self.get_time(new))
-			self.timer.setText(time_format)
-			if ',' in time_format and not self.old_input_size:
-				self.adapt_size(origin="AXA")
-			elif self.old_input_size:
-				if self.new_size:
-					self.timer.setFixedSize(self.new_size[0], self.new_size[1])
-					self.timer_font.setPointSize(self.new_font)
-				else:
-					self.timer.setFixedSize(self.old_input_size["Size"][0], self.old_input_size["Size"][1])
-					self.timer_font.setPointSize(self.old_input_size["Font"])
-				self.timer.setFont(self.timer_font)
-
-			self.change_mode()
-		elif ',' in new:
-			self.change_mode()
-		else:
-			self.timer.setText(''.join(self.old_input))
-			self.raise_error()
 
 	def eventFilter(self, obj, event):
 		if (event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton):
-			print(self.timer.rect())
 			if obj != self.timer:
 				if not self.timer.isReadOnly():
 					text = self.timer.text()
@@ -276,51 +296,26 @@ class ShutdownUi(QWidget):
 					self.change_text(text)
 		elif (event.type() == QEvent.WindowStateChange):
 			if self.windowState() & Qt.WindowMaximized:
-				print("A")
-				print(self.old_input_size, self.new_size, self.new_font)
-			elif event.oldState() & Qt.WindowMaximized:
-				print("minimized")
+				if self.size_plus >= 64:
+					pass
 
 		return super().eventFilter(obj, event)
-
-	#def adapt_size(self, old=False, origin=None):
-	#	if old:
-	#		print(old, self.timer_font.pointSize(), origin)
-	#		fm = QFontMetrics(self.timer_font)
-	#		width = fm.width(self.timer.text())
-	#		height = fm.height()
-	#		self.timer.setFixedSize(width, height+16)
-	#		self.timer.setFont(self.timer_font)
-	#		self.old_input_size["Font"] = self.timer_font.pointSize()
-	#		self.old_input_size["Size"] = self.timer.width(), self.timer.height()
-	#	else:
-	#		print(old, self.timer_font.pointSize(), origin)
-	#		self.timer_font.setPointSize(self.new_input_size["Font"]*self.h_factor)
-	#		self.old_input_size["Font"] = self.timer_font.pointSize()
-	#		fm = QFontMetrics(self.timer_font)
-	#		width = fm.width(self.timer.text())
-	#		height = fm.height()
-	#		self.timer.setFixedSize(width, height+15)
-	#		self.old_input_size["Size"] = self.timer.width(), self.timer.height()
-	#		self.timer.setFont(self.timer_font)
 
 	def resizeEvent(self, event):
 		self.w_factor = self.width() / self.w
 		self.h_factor = self.height() / self.h
 
 		if 'day' in self.timer.text():
-			if self.old_input_size:
-				self.new_font = self.old_input_size["Font"]*self.h_factor
-				self.new_size = self.old_input_size["Size"][0]*self.w_factor, self.old_input_size["Size"][1]*self.h_factor
-				self.timer_font.setPointSize(self.new_font)
-				self.timer.setFixedSize(self.new_size[0], self.new_size[1])
-				self.timer.setFont(self.timer_font)
-			else:
-				self.adapt_size(origin="resizeEvent")
+			self.timer.setFixedSize(self.ADAPT_SIZE[0]*self.w_factor+(self.size_plus), self.ADAPT_SIZE[1]*self.h_factor)
+			self.timer_font.setPointSize((self.ADAPT_FONT*self.h_factor))
+			self.timer.setFont(self.timer_font)
+			self.left_spacer.changeSize((65*self.w_factor)-self.left_plus, 0)
+			self.right_spacer.changeSize((35*self.w_factor)-self.right_plus, 0)
 		else:
-			pass
-			self.timer.setFixedSize(275*self.w_factor, 83*self.h_factor)
-			self.timer_font.setPointSize(51*self.h_factor)
+			self.timer.setFixedSize(self.DEFAULT_SIZE[0]*self.w_factor, self.DEFAULT_SIZE[1]*self.h_factor)
+			self.timer_font.setPointSize(self.DEFAULT_FONT*self.h_factor)
+			self.left_spacer.changeSize(65*self.w_factor, 0)
+			self.right_spacer.changeSize(35*self.w_factor, 0)
 
 		self.timer.setFont(self.timer_font)
 		self.info_text.setFont(QFont("MS Shell Dlg 2", 16*self.h_factor))
@@ -333,8 +328,6 @@ class ShutdownUi(QWidget):
 		self.invalid_dialog.setFixedSize(300*self.w_factor, 100*self.h_factor)
 		self.top_spacer.changeSize(0, 30*self.h_factor)
 		self.center_spacer.changeSize(0, 30*self.h_factor)
-		self.left_spacer.changeSize(65*self.w_factor, 0)
-		self.right_spacer.changeSize(35*self.w_factor, 0)
 		self.bottom_spacer.changeSize(0, 20*self.h_factor)
 		self.change_time.setIconSize(QSize(28*self.w_factor, 28*self.h_factor))
 		self.toggle_btn.setStyleSheet(f"""QPushButton {{
