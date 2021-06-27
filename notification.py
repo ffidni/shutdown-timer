@@ -4,6 +4,7 @@ class Notification(QWidget):
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
+		self.line = QLineEdit()
 		self.parent = parent
 		self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 		self.setStyleSheet("background-color: rgba(87 ,96, 111, 90)")
@@ -41,3 +42,9 @@ class Notification(QWidget):
 
 	def cancel(self):
 		self.parent.thread.stop("Cancel")
+
+if __name__ == '__main__':
+	app = QApplication([])
+	win = Notification()
+	win.show()
+	app.exec_()

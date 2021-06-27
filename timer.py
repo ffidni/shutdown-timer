@@ -11,17 +11,16 @@ class Timer(QThread):
 		self.parent = parent
 
 	def run(self):
-		self.parent.DEFAULT_TIME = self.parent.add_zero_leading(self.seconds)
+		self.parent.DEFAULT_TIME = self.parent.timer_format(self.seconds)
 		while (self.seconds > 0):
 			self.seconds -= 1
-			time_format = self.parent.add_zero_leading(self.seconds)
+			time_format = self.parent.timer_format(self.seconds)
 			if self.seconds == 10:
 				self.notif_signal.emit(True)
 			if not self.parent.notification.isHidden():
 				self.parent.notification.info.setText(f"Shutting down in {self.seconds}s")
 			else:
-				self.parent.input.setText(time_format)
-				self.parent.timer_text.setText(time_format)
+				self.parent.timer.setText(time_format)
 			sleep(1)
 
 		self.parent.input.setText(self.parent.DEFAULT_TIME)
@@ -32,9 +31,8 @@ class Timer(QThread):
 		self.terminate()
 		if value == 'Cancel':
 			self.notification.hide()
-			self.parent.input.setText(self.parent.DEFAULT_TIME)
-			self.parent.timer_text.setText(self.parent.DEFAULT_TIME)
+			self.parent.timer.setText(self.parent.DEFAULT_TIME)
 			self.parent.show()
 		self.parent.started = False
 		self.parent.toggle_btn.setText("Start")
-		self.parent.input.setCursorPosition(len(self.parent.input.text()))
+		self.parent.timer.setCursorPosition(len(self.parent.timer.text()))
