@@ -15,7 +15,7 @@ class Notification(QWidget):
 		self.layout_management()
 
 	def widget_management(self):
-		self.title = QPushButton("\t\tShutdown Timer")
+		self.title = QPushButton("\tShutdown Timer")
 		self.info = QLabel("Shutting down in 5s")
 		self.cancel_btn = QPushButton("Cancel")
 
@@ -49,7 +49,6 @@ class Notification(QWidget):
 	def layout_management(self):
 		main_layout = QVBoxLayout()
 		spacer = QSpacerItem(0, 250, QSizePolicy.Fixed, QSizePolicy.Fixed)
-
 
 		main_layout.addItem(spacer)
 		main_layout.addWidget(self.title, alignment=Qt.AlignBottom)

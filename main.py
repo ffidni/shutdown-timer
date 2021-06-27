@@ -48,7 +48,6 @@ class ShutdownUi(QWidget):
 		self.err_msg = QLabel("Invalid Input!")
 		self.ok_btn = QPushButton("Ok")
 
-
 		self.info_text.setFont(QFont("MS Shell Dlg 2", 16))
 		self.info_text.setStyleSheet("color: #ced6e0;")
 		self.timer.setAlignment(Qt.AlignHCenter)
@@ -108,7 +107,6 @@ class ShutdownUi(QWidget):
 											 border-radius: 8px;""")
 		self.ok_btn.setStyleSheet("""background: transparent;
 									border: 2px solid #ced6e0;""")
-
 	def raise_error(self):
 		QApplication.beep()
 		self.change_mode()
@@ -188,7 +186,6 @@ class ShutdownUi(QWidget):
 				QTimer.singleShot(50, self.thread.start)
 				self.toggle_btn.setText("Stop")
 
-
 	def change_mode(self):
 		if self.timer.isReadOnly():
 			self.set_focus(focus=True)
@@ -207,7 +204,6 @@ class ShutdownUi(QWidget):
 		else:
 			self.old_input = list(self.timer.text())
 			self.timer.setReadOnly(True)
-
 
 	def is_valid(self, text):
 		result = False
