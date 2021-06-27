@@ -28,10 +28,11 @@ class ShutdownUi(QWidget):
 		self.setMinimumSize(self.w, self.h)
 		self.setWindowTitle("Shutdown Timer")
 		self.setStyleSheet("""background: #2f3542;""")
-		self.installEventFilter(self)
 		self.widget_management()
 		self.setup_stylesheet()
 		self.layout_management()
+		self.installEventFilter(self)
+		self.timer.installEventFilter(self)
 
 	def widget_management(self):
 		self.thread = Timer(parent=self)
@@ -39,9 +40,7 @@ class ShutdownUi(QWidget):
 		self.thread.notif_signal.connect(self.show_notification)
 		self.thread.finished_signal.connect(self.shutdown)
 		self.info_text = QLabel("Your computer will shutdown in")
-		self.timer_font = QFont()
-		self.timer_font.setFamily("MS Shell Dlg 2")
-		self.timer_font.setPointSize(52)
+		self.timer_font = QFont("MS Shell Dlg 2", 52)
 		self.timer = QLineEdit(self.DEFAULT_TIME, self)
 		self.change_time = QPushButton(clicked=lambda: self.on_click(change_text=True))
 		self.toggle_btn = QPushButton("Start", clicked=lambda: self.on_click(change_text=False))
@@ -49,12 +48,14 @@ class ShutdownUi(QWidget):
 		self.err_msg = QLabel("Invalid Input!")
 		self.ok_btn = QPushButton("Ok")
 
+
 		self.info_text.setFont(QFont("MS Shell Dlg 2", 16))
 		self.info_text.setStyleSheet("color: #ced6e0;")
 		self.timer.setAlignment(Qt.AlignHCenter)
 		self.timer.textChanged.connect(self.value_changed)
 		self.timer.returnPressed.connect(lambda: self.on_click(change_text=True))
 		self.timer.setReadOnly(True)
+		self.timer.setCursor(QCursor(Qt.IBeamCursor))
 		self.change_time.setToolTip("Change current countdown")
 		self.change_time.setCursor(QCursor(Qt.PointingHandCursor))
 		self.change_time.setIcon(QIcon("Assets/settings.png"))
@@ -107,6 +108,7 @@ class ShutdownUi(QWidget):
 											 border-radius: 8px;""")
 		self.ok_btn.setStyleSheet("""background: transparent;
 									border: 2px solid #ced6e0;""")
+
 	def raise_error(self):
 		QApplication.beep()
 		self.change_mode()
@@ -122,7 +124,7 @@ class ShutdownUi(QWidget):
 		self.timer.setReadOnly(not focus)
 		self.timer.setFocus(focus)
 		if focus: 
-			self.timer.deselect()
+			QTimer.singleShot(10, self.timer.deselect)
 
 	def adapt_size(self):
 		self.size_plus = (len(self.timer.text()[:-9])-5)
@@ -172,12 +174,14 @@ class ShutdownUi(QWidget):
 
 			if not self.timer.isReadOnly():
 				self.text_valid = self.is_valid(text)
+				self.timer.setCursor(QCursor(Qt.IBeamCursor))
 			self.change_text(text)
 		else:
 			if self.started:
 				QTimer.singleShot(50, self.thread.stop)
 			else:
 				if not self.timer.isReadOnly():
+					self.timer.setCursor(QCursor(Qt.IBeamCursor))
 					self.set_focus(focus=False)
 				self.started = True
 				self.thread.seconds = self.get_time(self.timer.text(), reverse=True if 'day' in text else False)
@@ -294,10 +298,13 @@ class ShutdownUi(QWidget):
 					text = self.timer.text()
 					self.text_valid = self.is_valid(text)
 					self.change_text(text)
-		elif (event.type() == QEvent.WindowStateChange):
-			if self.windowState() & Qt.WindowMaximized:
-				if self.size_plus >= 64:
-					pass
+					self.timer.setCursor(QCursor(Qt.IBeamCursor))
+				else:
+					self.timer.deselect()
+		elif (event.type() == QEvent.MouseButtonDblClick):
+			if obj == self.timer:
+				if self.timer.isReadOnly():
+					self.set_focus(focus=True)
 
 		return super().eventFilter(obj, event)
 
