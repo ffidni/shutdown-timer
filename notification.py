@@ -6,6 +6,7 @@ class Notification(QWidget):
 		super().__init__(parent)
 		self.line = QLineEdit()
 		self.parent = parent
+		#Setting up window flag so that the window doesn't have a frame and always stay on top
 		self.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
 		self.setStyleSheet("background-color: rgba(87 ,96, 111, 90)")
 		self.init_ui()
@@ -15,6 +16,7 @@ class Notification(QWidget):
 		self.layout_management()
 
 	def widget_management(self):
+		#Setting up widget
 		self.title = QPushButton("\tShutdown Timer")
 		self.info = QLabel("Shutting down in 5s")
 		self.cancel_btn = QPushButton("Cancel")
@@ -30,6 +32,7 @@ class Notification(QWidget):
 		self.setup_stylesheet()
 
 	def setup_stylesheet(self):
+		#Setting up stylesheet
 		self.title.setStyleSheet("""background: transparent;
 									border: none;
 									color: #ced6e0;""")
@@ -47,6 +50,7 @@ class Notification(QWidget):
 										}""")
 
 	def layout_management(self):
+		#Setting up layout management
 		main_layout = QVBoxLayout()
 		spacer = QSpacerItem(0, 250, QSizePolicy.Fixed, QSizePolicy.Fixed)
 
@@ -59,4 +63,5 @@ class Notification(QWidget):
 		self.setLayout(main_layout)
 
 	def cancel(self):
+		#Cancel event
 		self.parent.thread.stop("Cancel")

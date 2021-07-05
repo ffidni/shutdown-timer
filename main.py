@@ -3,6 +3,7 @@ from platform import system
 from subprocess import call
 
 class ShutdownUi(QWidget):
+	#Defining constant values
 	DEFAULT_TIME = "00:10:00"
 	ADAPT_FONT = 27
 	ADAPT_SIZE = 236, 59
@@ -11,6 +12,7 @@ class ShutdownUi(QWidget):
 
 	def __init__(self):
 		super().__init__()
+		#Defining variables
 		self.w, self.h = 441, 286
 		self.w_factor, self.h_factor = 1, 1
 		self.text_valid = True
@@ -24,6 +26,7 @@ class ShutdownUi(QWidget):
 		self.init_ui()
 
 	def init_ui(self):
+		#Setting up ui components
 		self.setWindowIcon(QIcon("Assets/shutdown.png"))
 		self.setMinimumSize(self.w, self.h)
 		self.setWindowTitle("Shutdown Timer")
@@ -35,6 +38,7 @@ class ShutdownUi(QWidget):
 		self.timer.installEventFilter(self)
 
 	def widget_management(self):
+		#Setting up widget
 		self.thread = Timer(parent=self)
 		self.notification = Notification(self)
 		self.thread.notif_signal.connect(self.show_notification)
@@ -73,6 +77,7 @@ class ShutdownUi(QWidget):
 		self.ok_btn.setFixedSize(60, 25)
 
 	def layout_management(self):
+		#Setting up layout 
 		self.main_layout = QVBoxLayout()
 		self.timer_layout = QHBoxLayout()
 		self.invalid_layout = QVBoxLayout()
@@ -99,6 +104,7 @@ class ShutdownUi(QWidget):
 		self.setLayout(self.main_layout)
 
 	def setup_stylesheet(self):
+		#Setting up stylesheet
 		self.timer.setStyleSheet("""color: #ced6e0;
 									background: #2D323F;
 									border-radius: 10px;""")
@@ -108,6 +114,7 @@ class ShutdownUi(QWidget):
 		self.ok_btn.setStyleSheet("""background: transparent;
 									border: 2px solid #ced6e0;""")
 	def raise_error(self):
+		#Raise error when the input is invalid
 		QApplication.beep()
 		self.change_mode()
 		self.invalid_dialog.show()
@@ -115,16 +122,22 @@ class ShutdownUi(QWidget):
 		self.invalid_dialog.hide()
 
 	def show_notification(self):
+		#Hide current window
+		#Show notifcation window with fullscreen
 		self.hide()
 		self.notification.showFullScreen()
 
 	def set_focus(self, focus=False):
+		#Set the line edit's readonly depending on focus value
 		self.timer.setReadOnly(not focus)
 		self.timer.setFocus(focus)
+		#When you set focus, it's automatically select all the value
+		#Deselect to solve it
 		if focus: 
 			QTimer.singleShot(10, self.timer.deselect)
 
 	def adapt_size(self):
+		#Adapt line edit size depending on the timer format's size
 		self.size_plus = (len(self.timer.text()[:-9])-5)
 		self.left_plus, self.right_plus = 0, 0
 		if not self.size_plus:
@@ -151,20 +164,31 @@ class ShutdownUi(QWidget):
 		self.right_spacer.changeSize((35*self.w_factor)-self.right_plus, 0)
 
 	def change_text(self, new):
+		#Change text when user is done editing the input / leaving the input
+		#If text is valid, make the format 
+		#and if there's long input (there's ','/'day' in the input); adapt the size
 		if self.text_valid:
 			time_format = self.timer_format(self.get_time(new))
 			self.timer.setText(time_format)
 			if ',' in time_format:
 				self.adapt_size()
-
 			self.change_mode()
+
+		#Change the formatted input into default
 		elif ',' in new:
 			self.change_mode()
+
+		#Handling invalid input
 		else:
 			self.timer.setText(''.join(self.old_input))
 			self.raise_error()
 
 	def on_click(self, change_text=False):
+		#Click event, get the input text
+		#If change_text is true, if thread is running; stop it,
+		#If timer is not read only; check if the input valid, set the cursor,
+		#and then change the text
+
 		text = self.timer.text()
 		if change_text:
 			if self.thread.isRunning():
@@ -174,6 +198,11 @@ class ShutdownUi(QWidget):
 				self.text_valid = self.is_valid(text)
 				self.timer.setCursor(QCursor(Qt.IBeamCursor))
 			self.change_text(text)
+
+		#Otherwise, if timer is started; stop it with 50 seconds delay,
+		#if the timer is not started and if timer is not read only;
+		#Set the cursor, set focus, reverse the text if it's a long text,
+		#otherwize just use the seconds value, start the thread, and change the button text to stop
 		else:
 			if self.started:
 				QTimer.singleShot(50, self.thread.stop)
@@ -187,25 +216,33 @@ class ShutdownUi(QWidget):
 				self.toggle_btn.setText("Stop")
 
 	def change_mode(self):
+		#Changing line edit mode to input only or read only
 		if self.timer.isReadOnly():
 			self.set_focus(focus=True)
 			text = self.timer.text()
+			#If the len is greater than 8; change the long text to default text and adapt the size
 			if len(text) > 8:
 				new_text = self.get_time(text, reverse=True, is_str=True)
 				self.timer.setCursorPosition(0)
 				self.timer.setFixedSize(275*self.w_factor, 83*self.h_factor)
 				self.timer_font.setPointSize(51*self.h_factor)
 				self.timer.setFont(self.timer_font)
+			#Otherwise, just use the default
 			else:
 				new_text = self.timer_format(self.get_time(text, reverse=False))
+
+			#Change the text and change old input value
 			if new_text:
 				self.timer.setText(new_text)
 			self.old_input = list(self.timer.text())
+
+		#If the line edit is input only, change old input and change the mode
 		else:
 			self.old_input = list(self.timer.text())
 			self.timer.setReadOnly(True)
 
 	def is_valid(self, text):
+		#Handling valid value
 		result = False
 		for char in text.split(':'):
 			if char.isnumeric():
@@ -216,6 +253,7 @@ class ShutdownUi(QWidget):
 		return result
 
 	def value_changed(self, text):
+		#Preventing user to remove the colon from the input
 		self.text_valid = self.is_valid(text)
 		if self.colon[0] or not self.reset_colon:
 			if text.count(':') != 2:
@@ -239,6 +277,7 @@ class ShutdownUi(QWidget):
 				self.reset_colon = False
 
 	def timer_format(self, s=None, d=None):
+		#A function to create a timer format
 		time_format = str(timedelta(seconds=self.get_time(self.timer.text()) if not s else s))
 		if 'days' not in time_format or 'day' not in time_format:
 			if len(time_format.split(":")[0]) == 1:
@@ -251,6 +290,7 @@ class ShutdownUi(QWidget):
 		return time_format
 
 	def get_time(self, text, reverse=False, is_str=False):
+		#Getting the total seconds in timer format
 		values = []
 		if not reverse:
 			for index, nums in enumerate(text.split(":")):
@@ -278,17 +318,21 @@ class ShutdownUi(QWidget):
 
 	@pyqtSlot()
 	def shutdown(self):
+		#Shutdown the computer depending on the operating system
 		self.started = False
 		self.toggle_btn.setText("Start")
 		self.notification.hide()
 		system_name = system()
 		if system_name == 'Windows':
-			call("shutdown /s")
+			call("shutdown /p")
 		elif system_name == 'Linux' or system_name == 'Darwin':
 			call("shutdown")
 
 	def eventFilter(self, obj, event):
+		#Filtering mouse press and double click
 		if (event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton):
+			#If you left click other widget
+			#If object is input only, make it read only
 			if obj != self.timer:
 				if not self.timer.isReadOnly():
 					text = self.timer.text()
@@ -297,6 +341,8 @@ class ShutdownUi(QWidget):
 					self.timer.setCursor(QCursor(Qt.IBeamCursor))
 				else:
 					self.timer.deselect()
+
+		#If the user double click the timer input, change the mode to input only
 		elif (event.type() == QEvent.MouseButtonDblClick):
 			if obj == self.timer:
 				if self.timer.isReadOnly():
@@ -305,6 +351,7 @@ class ShutdownUi(QWidget):
 		return super().eventFilter(obj, event)
 
 	def resizeEvent(self, event):
+		#Resizing widgets depending on window's size
 		self.w_factor = self.width() / self.w
 		self.h_factor = self.height() / self.h
 
