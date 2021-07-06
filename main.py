@@ -326,7 +326,7 @@ class ShutdownUi(QWidget):
 		if system_name == 'Windows':
 			call("shutdown /p")
 		elif system_name == 'Linux' or system_name == 'Darwin':
-			call("shutdown")
+			call("shutdown -P")
 
 	def eventFilter(self, obj, event):
 		#Filtering mouse press and double click
